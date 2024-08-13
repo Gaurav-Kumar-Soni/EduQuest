@@ -1,14 +1,22 @@
 
 const mongoose = require("mongoose");
-const OTP = require("../models/OTP");
-const User = require("../models/User");
 const nodemailer = require("nodemailer");
 const otpGenerator = require("otp-generator");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const OTP = require("../models/OTP");
 const Profile = require("../models/Profile");
+const mailSender = require("../utils/mailSender");
+
 
 require("dotenv").config();
 
+
+function validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
 
 // send OTP for verification
 
@@ -18,13 +26,14 @@ exports.sendOTP = async (req, res) => {
         const email = req.body.email;
 
         // validate email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!validateEmail(email)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email format.",
             });
         }
+
+
 
         // check user is already exist or not from this email?
         const userExist = await User.findOne({ email });
@@ -99,6 +108,12 @@ exports.signUP = async (req, res) => {
                 message: "All fields are mandatory, please fill carefully"
             })
         }
+        if (password.length < 8) {
+            return res.status(400).json({
+                status: false,
+                message: "Password must be atleast length of 8 characters",
+            })
+        }
 
         // validation for password is equal with confirmPassword
         if (password !== confirmPassword) {
@@ -109,8 +124,7 @@ exports.signUP = async (req, res) => {
         }
 
         // validate email
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!validateEmail(email)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email format.",
@@ -137,7 +151,7 @@ exports.signUP = async (req, res) => {
                 success: false,
                 message: "OTP not found!",
             })
-        } else if (otp !== recentOTP.otp) {
+        } else if (otp !== recentOTP[0].otp) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid OTP!",
@@ -184,7 +198,7 @@ exports.signUP = async (req, res) => {
         console.log("Issue while doing SignUp, try Again later!", error);
         return res.status(500).json({
             success: false,
-            message:"Issue while doing SignUp, try Again later!",
+            message: "Issue while doing SignUp, try Again later!",
         })
     }
 
@@ -193,8 +207,161 @@ exports.signUP = async (req, res) => {
 }
 
 
-
 // login
 
+exports.login = async (req, res) => {
+    try {
+
+        // fetch data from request body
+        const { email, password } = req.body;
+
+        // data is fully filled or not by user?
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are mandatory, please try again",
+            })
+        }
+
+        // validation of email
+      
+        if (!validateEmail(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format.",
+            });
+        }
+
+        // check user is registered or not
+        const userExist = await User.findOne({ email }).populate("additionalDetails");
+
+        if (!userExist) {
+            return res.status(401).json({
+                success: false,
+                message: "Email is not Registered, please Signup first."
+            })
+        }
+
+        //generate JWT jsonwebtoken after password matching
+        if (await bcrypt.compare(password, userExist.hashedPassword)) {
+            const payload = {
+                email: userExist.email,
+                id: userExist._id,
+                role: userExist.accountType,
+            }
+            const token = jwt.sign(payload, process.env.JWT_SECRET, {
+                expiresIn: "2h",
+            })
+
+
+            userExist.toObject();
+            userExist.token = token;
+            userExist.password = undefined;
+
+            // create cookie
+            const options = {
+                expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+                httpOnly: true,
+            }
+            // send response with cookie.
+            res.cookie("login_token", token, options).status(200).json({
+                success: true,
+                token,
+                userExist,
+                message: "user login successfully.",
+            })
+        }
+        else {
+            res.status(401).json({
+                success: false,
+                message: "login failed! may be Password is wrong",
+            })
+        }
+
+    } catch (error) {
+        console.log("Issue while User login, please try again later.", error);
+        res.status(500).json({
+            success: false,
+            message: "Login Failure, please try again later."
+        })
+    }
+}
+
 // change password
+
+exports.changePassword = async (req, res) => {
+    try {
+
+        // fetch data from requesr body
+        const { oldPassword, newPassword, confirmNewPassword } = req.body;
+
+        //data validation
+        // data is fully filled or not by user?
+        if (!oldPassword || !newPassword || !confirmNewPassword) {
+            return res.status(403).json({
+                success: false,
+                message: "All fields are mandatory, please try again",
+            })
+        }
+
+        // check newPassword length
+
+        if (newPassword.length< 8) {
+            return res.status(400).json({
+                status: false,
+                message: "Password must be atleast length of 8 characters",
+            })
+        }
+        // check newPassword and confirmNewPassword match
+
+        if (newPassword !== confirmNewPassword) {
+            return res.status(400).json({
+                status: false,
+                message: "Password and confirm Password doesnot matching. please enter the same for both",
+            })
+        }
+
+        // find user by ID (assuming user ID is stored in req.user.id)
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+        if (!isMatch) {
+            return res.status(400).json({
+                status: false,
+                message: "old Password is incorrect, please try again with correct old password",
+            })
+        }
+
+        //hashed new password
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+        //update password on Database
+        user.password = hashedNewPassword;
+        await user.save();
+
+        //send mail- paswword is changed
+        const mailResponse = await mailSender(user.email, "Passsword changed", "your password is successfully changed.")
+
+        // return response
+        return res.status(200).json({
+            success: true,
+            message: "Password Changed Successfully.",
+        })
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error while changing password, please try again later",
+        });
+    }
+}
 
