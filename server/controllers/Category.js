@@ -1,6 +1,6 @@
 
+const Category = require("../models/Category");
 
-const Tag = require("../models/Tags");
 
 //create tag handler
 exports.createCategory = async (req, res) => {

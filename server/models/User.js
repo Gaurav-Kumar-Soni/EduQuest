@@ -30,6 +30,14 @@ const userSchema = new mongoose.Schema({
         ref: "Profile",
         required: true,
     },
+    active: {
+        type: Boolean,
+        default: true,
+    },
+    approved: {
+        type: Boolean,
+        default: true,
+    },
     courses: [
         {
             type: mongoose.Schema.Types.ObjectId,
@@ -53,7 +61,9 @@ const userSchema = new mongoose.Schema({
 
         }
     ],
-})
+},
+    { timestamps: true }
+);
 
 
 module.exports = mongoose.model("User", userSchema);

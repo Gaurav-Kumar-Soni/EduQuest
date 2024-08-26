@@ -1,12 +1,11 @@
 
-const mongoose = require("mongoose");
-const nodemailer = require("nodemailer");
 const otpGenerator = require("otp-generator");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const OTP = require("../models/OTP");
 const Profile = require("../models/Profile");
+const { passwordUpdated } = require("../mail/templates/passwordUpdate");
 const mailSender = require("../utils/mailSender");
 
 
@@ -224,7 +223,7 @@ exports.login = async (req, res) => {
         }
 
         // validation of email
-      
+
         if (!validateEmail(email)) {
             return res.status(400).json({
                 success: false,
@@ -306,7 +305,7 @@ exports.changePassword = async (req, res) => {
 
         // check newPassword length
 
-        if (newPassword.length< 8) {
+        if (newPassword.length < 8) {
             return res.status(400).json({
                 status: false,
                 message: "Password must be atleast length of 8 characters",
@@ -347,9 +346,26 @@ exports.changePassword = async (req, res) => {
         user.password = hashedNewPassword;
         await user.save();
 
-        //send mail- paswword is changed
-        const mailResponse = await mailSender(user.email, "Passsword changed", "your password is successfully changed.")
-
+        
+        // Send notification email
+        try {
+            const emailResponse = await mailSender(
+                updatedUserDetails.email,
+                passwordUpdated(
+                    updatedUserDetails.email,
+                    `Password updated successfully for ${updatedUserDetails.firstName} ${updatedUserDetails.lastName}`
+                )
+            );
+            console.log("Email sent successfully:", emailResponse.response);
+        } catch (error) {
+            // If there's an error sending the email, log the error and return a 500 (Internal Server Error) error
+            console.error("Error occurred while sending email:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Error occurred while sending email",
+                error: error.message,
+            });
+        }
         // return response
         return res.status(200).json({
             success: true,
