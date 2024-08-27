@@ -59,7 +59,7 @@ exports.createSubSection = async (req, res) => {
 
 //update Subsection 
 
-const updateSubSection = async (req, res) => {
+exports.updateSubSection = async (req, res) => {
     try {
         const { subSectionTitle, subSectionId } = req.body;
 
@@ -89,7 +89,7 @@ const updateSubSection = async (req, res) => {
 
 //Delete Subsection
 
-const deleteSubSection = async (req, res) => {
+exports.deleteSubSection = async (req, res) => {
     try {
         // fetch data {subSectionId, sectionId}
         const { subSectionId, sectionId } = req.body;

@@ -93,7 +93,7 @@ exports.sendOTP = async (req, res) => {
 
 // signup
 
-exports.signUP = async (req, res) => {
+exports.signup = async (req, res) => {
 
     try {
 
