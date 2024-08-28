@@ -1,3 +1,7 @@
+
+
+// ignore .env file
+
 .env
 .env.example
 .env.local
