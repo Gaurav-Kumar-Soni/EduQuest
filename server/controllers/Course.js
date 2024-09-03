@@ -13,6 +13,7 @@ exports.createCourse = async (req, res) => {
     try {
 
         //fetch data
+        const userId = req.user.id;
         let {
             courseName,
             courseDescription,

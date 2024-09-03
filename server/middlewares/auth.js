@@ -6,19 +6,19 @@ require("dotenv").config();
 
 exports.auth = async (req, res, next) => {
     try {
-        //extract jwt web token
+        // Extract JWT token
         console.log("cookie: ", req.cookies.login_token);
 
-        const token = req.cookies.login_token || req.header("Authorisation").replace("Bearer ", "") || req.body.login_token;
+        const token = req.cookies.login_token || req.header("Authorization").replace("Bearer ", "") || req.body.login_token;
 
         if (!token || token == undefined) {
-            res.status(401).json({
+            return res.status(401).json({
                 success: false,
                 message: "Authentication fail || token missing"
-            })
+            });
         }
 
-        // verify token
+        // Verify token
         try {
             const payload = jwt.verify(token, process.env.JWT_SECRET);
             console.log(payload);
@@ -30,25 +30,25 @@ exports.auth = async (req, res, next) => {
             });
         }
         next();
-
     } catch (error) {
         return res.status(401).json({
             success: false,
-            message: "something Went wrong while verifying the Token"
+            message: "Something went wrong while verifying the Token"
         });
     }
-}
+};
 
 //isStudent
 exports.isStudent = async (req, res, next) => {
     try {
 
-        if (req.user.accountType != "Student") {
+        if (req.user.accountType !== "Student") {
             return res.status(401).json({
                 success: false,
                 message: "This is a protected route for Student only.",
             })
         }
+        next();
 
     } catch (error) {
         return res.status(500).json({
@@ -68,6 +68,7 @@ exports.isInstructor = async (req, res, next) => {
                 message: "This is a protected route for Instructor only.",
             })
         }
+        next();
 
     } catch (error) {
         return res.status(500).json({
@@ -80,13 +81,14 @@ exports.isInstructor = async (req, res, next) => {
 // isAdmin
 exports.isAdmin = async (req, res, next) => {
     try {
-
-        if (req.user.accountType != "Admin") {
+        console.log("printing AccountType: ", req.user.accountType);
+        if (req.user.accountType !== "Admin") {
             return res.status(401).json({
                 success: false,
                 message: "This is a protected route for Admin only.",
             })
         }
+        next();
 
     } catch (error) {
         return res.status(500).json({

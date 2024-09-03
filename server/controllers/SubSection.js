@@ -9,13 +9,13 @@ require("dotenv").config();
 exports.createSubSection = async (req, res) => {
     try {
         // fetch data from req body
-        const { title, description, SectionId, timeDuration } = req.body;
+        const { title, description, sectionId, timeDuration } = req.body;
 
         // extract file for video
         const video = req.files.videoFile;
 
         // data validation
-        if (!SectionId || !title || !description || !timeDuration || !video) {
+        if (!sectionId || !title || !description || !timeDuration || !video) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required!"
@@ -36,7 +36,7 @@ exports.createSubSection = async (req, res) => {
 
         //update Section with this subsection Id
 
-        const updatedSection = await Section.findByIdAndUpdate({ _id: SectionId }, { $push: { subSection: newSubsection._id } }, { new: true });
+        const updatedSection = await Section.findByIdAndUpdate({ _id: sectionId }, { $push: { subSection: newSubsection._id } }, { new: true });
         //TODO: log updated section here after adding populate query
         //return response
 
@@ -64,6 +64,7 @@ exports.updateSubSection = async (req, res) => {
         const { subSectionTitle, subSectionId } = req.body;
 
         // validate data
+        console.log("subsection Id: ", subSectionId);
         if (!subSectionTitle || !subSectionId) {
             return res.status(400).json({
                 success: false,
@@ -71,7 +72,7 @@ exports.updateSubSection = async (req, res) => {
             })
         }
         // find and update
-        const updateSS = await SubSection.findByIdAndUpdate({ subSectionId }, { title: subSectionTitle }, { new: true });
+        const updateSS = await SubSection.findByIdAndUpdate(subSectionId , { title: subSectionTitle }, { new: true });
         // return response
         return res.status(200).json({
             success: true,

@@ -61,7 +61,7 @@ exports.updateSection = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Section Updated  Successfully",
-            upadtedCourseDetails,
+            updatedata,
         })
 
     } catch (error) {
@@ -79,10 +79,11 @@ exports.deleteSection = async (req, res) => {
         // fetch sectionId of the section which have to be deleted
         //assume that we are sending id in the params
 
-        const { courseId, sectionId } = req.params;
-
+        const { courseId, sectionId } = req.body;
+        console.log("courseId: ", courseId);
+        console.log("sectionId: ", sectionId);
         // validate data
-        if (!sectionId) {
+        if (!sectionId || !courseId) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are mandatory."

@@ -101,7 +101,7 @@ exports.signup = async (req, res) => {
         const { firstName, lastName, email, password, confirmPassword, accountType, contactNumber, otp } = req.body;
 
         // validate data
-        if (!firstName || !lastName || !email || !password || !confirmPassword || !otp) {
+        if (!firstName || !lastName || !email || !password || !confirmPassword || !otp || !accountType) {
             return res.status(403).json({
                 success: false,
                 message: "All fields are mandatory, please fill carefully"
@@ -240,20 +240,30 @@ exports.login = async (req, res) => {
                 message: "Email is not Registered, please Signup first."
             })
         }
+        
 
         //generate JWT jsonwebtoken after password matching
-        if (await bcrypt.compare(password, userExist.hashedPassword)) {
-            const payload = {
-                email: userExist.email,
-                id: userExist._id,
-                role: userExist.accountType,
-            }
-            const token = jwt.sign(payload, process.env.JWT_SECRET, {
-                expiresIn: "2h",
-            })
+        // if (await bcrypt.compare(password, userExist.password)) {
+        //     const payload = {
+        //         email: userExist.email,
+        //         id: userExist._id,
+        //         accountType: userExist.accountType,
+        //     }
+        //     const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        //         expiresIn: "2h",
+        //     });
+
+        if (await bcrypt.compare(password, userExist.password)) {
+			const token = jwt.sign(
+				{ email: userExist.email, id: userExist._id, accountType: userExist.accountType },
+				process.env.JWT_SECRET,
+				{
+					expiresIn: "24h",
+				}
+			);
 
 
-            userExist.toObject();
+            // userExist.toObject();
             userExist.token = token;
             userExist.password = undefined;
 
