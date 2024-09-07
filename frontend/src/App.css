@@ -10,3 +10,6 @@ html, body {
 .homepage_bg {
     background: url("../src/assets/Images/bghome.svg");
 }
+.logoImg {
+    border-radius: 50%;
+  }
